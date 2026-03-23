@@ -5,6 +5,8 @@ import Upload from "./pages/Upload";
 import Options from "./pages/Options";
 import Domains from "./pages/Domains";
 import Jobs from "./pages/Jobs";
+import Quiz from "./pages/Quiz";
+import Radar from "./pages/Radar";
 
 function App() {
   return (
@@ -15,6 +17,8 @@ function App() {
         <Route path="/options" element={<Options />} />
         <Route path="/domains" element={<Domains />} />
         <Route path="/jobs" element={<Jobs />} />
+        <Route path="/quiz" element={<Quiz />} />
+        <Route path="/radar" element={<Radar />} />
       </Routes>
     </Router>
   );

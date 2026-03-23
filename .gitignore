@@ -8,3 +8,7 @@ __pycache__/
 venv/
 __pycache__/
 *.pkl
+# temp uploaded resumes
+temp_*
+*.pdf
+*.docx
