@@ -27,6 +27,14 @@ export default function Options() {
             🧠 Skill Assessment Quiz
           </button>
 
+          {/* 🔥 NEW INTERVIEW BUTTON */}
+          <button
+            onClick={() => navigate("/interview")}
+            className="w-72 bg-black text-white px-6 py-3 rounded-xl hover:scale-105 transition"
+          >
+            🎤 AI Interview Practice
+          </button>
+
           <button className="w-72 bg-gray-200 px-6 py-3 rounded-xl">
             ✍️ Resume Rewriter (Soon)
           </button>

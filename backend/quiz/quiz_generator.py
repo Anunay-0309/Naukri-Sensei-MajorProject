@@ -32,9 +32,11 @@ Rules:
 
 Output ONLY valid JSON:
 
+Return ONLY JSON:
+
 {
  "mcq":[
-   {"question":"","options":[],"correct":"","difficulty":"","skill":""}
+   {"question":"","options":[],"correct":"","difficulty":"","skill":"","explanation":""}
  ],
  "subjective":[
    {"question":"","skill":"","difficulty":"","ideal_answer":""}
@@ -93,6 +95,8 @@ def filter_bad_questions(quiz):
 
     clean = []
     for q in quiz["mcq"]:
+        if "explanation" not in q:
+            q["explanation"] = f"The correct answer is {q['correct']} because it is the most appropriate choice based on the concept."
         if not any(b in q["question"].lower() for b in bad_words):
             clean.append(q)
 

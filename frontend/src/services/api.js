@@ -43,3 +43,46 @@ export const submitQuiz = async (payload) => {
 
   return res.json();
 };
+
+export const startInterview = async () => {
+  const res = await fetch(`${BASE_URL}/start_interview`, {
+    method: "POST"
+  });
+  return res.json();
+};
+
+export const submitInterviewAnswer = async (payload) => {
+  const res = await fetch(`${BASE_URL}/submit_interview_answer`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify(payload)
+  });
+  return res.json();
+};
+
+export const skipInterviewQuestion = async () => {
+  const res = await fetch(`${BASE_URL}/skip_interview_question`, {
+    method: "POST"
+  });
+  return res.json();
+};
+
+export const simplifyQuestion = async (question) => {
+  const res = await fetch(`${BASE_URL}/simplify_question`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({ question })
+  });
+  return res.json();
+};
+
+export const endInterview = async () => {
+  const res = await fetch(`${BASE_URL}/end_interview`, {
+    method: "POST"
+  });
+  return res.json();
+};
