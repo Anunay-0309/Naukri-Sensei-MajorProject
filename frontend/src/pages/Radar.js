@@ -1,5 +1,4 @@
 import { useLocation } from "react-router-dom";
-import MainLayout from "../layout/MainLayout";
 import {
   RadarChart,
   PolarGrid,
@@ -14,111 +13,116 @@ export default function RadarPage() {
 
   if (!data || !data.radar) {
     return (
-      <MainLayout>
-        <div className="text-center mt-20 text-gray-500">
-          No data available.
-        </div>
-      </MainLayout>
+      <div className="min-h-screen flex items-center justify-center bg-[#050505] text-white">
+        <p className="text-zinc-400">No data available.</p>
+      </div>
     );
   }
 
+  // ===== RADAR DATA =====
   const radarData = Object.entries(data.radar).map(([key, value]) => ({
     skill: key.replace("_", " "),
     value: value
   }));
 
   return (
-    <MainLayout>
-      <div className="max-w-4xl mx-auto mt-12">
+    <div className="min-h-screen bg-[#050505] text-white font-['Space_Grotesk']">
+
+      <div className="max-w-6xl mx-auto px-8 py-16">
+
+        {/* ===== TITLE ===== */}
+        <h1 className="text-5xl font-bold mb-12">
+          Career Radar Analysis
+        </h1>
 
         {/* ===== RADAR ===== */}
-        <h2 className="text-4xl font-semibold text-center mb-10">
-          Skill Radar
-        </h2>
+        <div className="bg-zinc-900/40 border border-white/5 rounded-3xl p-10 mb-20">
+          <h2 className="text-xl mb-6 text-zinc-300">Skill Topology</h2>
 
-        <div className="w-full h-[350px] mb-16">
-          <ResponsiveContainer>
-            <RadarChart data={radarData}>
-              <PolarGrid stroke="#e5e5e5" />
-              <PolarAngleAxis
-                dataKey="skill"
-                tick={{ fill: "#555", fontSize: 14 }}
-              />
-              <Radar
-                dataKey="value"
-                stroke="#000"
-                fill="#000"
-                fillOpacity={0.12}
-              />
-            </RadarChart>
-          </ResponsiveContainer>
+          <div className="w-full h-[400px]">
+            <ResponsiveContainer>
+              <RadarChart data={radarData}>
+                <PolarGrid stroke="#333" />
+                <PolarAngleAxis
+                  dataKey="skill"
+                  tick={{ fill: "#aaa", fontSize: 12 }}
+                />
+                <Radar
+                  dataKey="value"
+                  stroke="#6366f1"
+                  fill="#6366f1"
+                  fillOpacity={0.3}
+                />
+              </RadarChart>
+            </ResponsiveContainer>
+          </div>
         </div>
 
-        {/* ===== REVIEW ===== */}
-        <h2 className="text-3xl font-semibold mb-10 text-center">
+        {/* ===== ANSWER REVIEW ===== */}
+        <h2 className="text-3xl font-semibold mb-10">
           Answer Review
         </h2>
 
-        <div className="space-y-10">
+        <div className="space-y-12">
 
-          {data.review.map((q, i) => (
-            <div key={i} className="border-b pb-8">
+          {data.review?.map((q, i) => (
+            <div
+              key={i}
+              className="bg-zinc-900/40 border border-white/5 rounded-2xl p-6"
+            >
 
-              {/* Question */}
-              <h3 className="text-lg font-medium mb-4">
+              {/* QUESTION */}
+              <h3 className="text-lg mb-4">
                 {i + 1}. {q.question}
               </h3>
 
-              {/* Options */}
-              <div className="flex flex-col gap-3">
+              {/* OPTIONS */}
+              <div className="space-y-3">
 
                 {q.options.map((opt, j) => {
                   const isUser = opt === q.user_answer;
                   const isCorrect = opt === q.correct;
 
-                  let style = "border rounded-xl px-5 py-3";
+                  let style =
+                    "px-4 py-3 rounded-xl border flex justify-between items-center";
 
                   if (isCorrect) {
-                    style += " bg-green-100 border-green-400";
+                    style += " border-green-500 bg-green-500/10";
                   } else if (isUser && !q.is_correct) {
-                    style += " bg-red-100 border-red-400";
+                    style += " border-red-500 bg-red-500/10";
                   } else {
-                    style += " bg-white";
+                    style += " border-white/10";
                   }
 
                   return (
                     <div key={j} className={style}>
-                      <div className="flex justify-between items-center">
+                      <span>{opt}</span>
 
-                        <span>{opt}</span>
+                      {/* ICONS */}
+                      {isCorrect && (
+                        <span className="text-green-400">✔</span>
+                      )}
 
-                        {/* Indicators */}
-                        {isCorrect && (
-                          <span className="text-green-600 text-xl">✓</span>
-                        )}
-
-                        {isUser && !q.is_correct && (
-                          <span className="text-red-600 text-xl">✕</span>
-                        )}
-
-                      </div>
+                      {isUser && !q.is_correct && (
+                        <span className="text-red-400">✕</span>
+                      )}
                     </div>
                   );
                 })}
-
               </div>
 
-              {/* Explanation */}
-              <p className="text-gray-500 mt-4 text-sm leading-relaxed">
-                {q.explanation}
-              </p>
-
+              {/* EXPLANATION */}
+              {q.explanation && (
+                <p className="text-zinc-400 mt-4 text-sm">
+                  {q.explanation}
+                </p>
+              )}
             </div>
           ))}
 
         </div>
 
       </div>
-    </MainLayout>
+    </div>
   );
 }

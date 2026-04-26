@@ -13,10 +13,8 @@ export default function Interview() {
   const [question, setQuestion] = useState(null);
   const [answer, setAnswer] = useState("");
   const [feedback, setFeedback] = useState("");
-  const [completed, setCompleted] = useState(false);
-  const [report, setReport] = useState(null);
-  const [listening, setListening] = useState(false);
   const [started, setStarted] = useState(false);
+  const [listening, setListening] = useState(false);
 
   const recognitionRef = useRef(null);
   const videoRef = useRef(null);
@@ -27,72 +25,55 @@ export default function Interview() {
   const SpeechRecognition =
     window.SpeechRecognition || window.webkitSpeechRecognition;
 
-  // 🔐 Redirect
+  // 🔐 Redirect if no resume
   useEffect(() => {
     if (!resumeUploaded) {
       navigate("/upload");
     }
   }, [resumeUploaded, navigate]);
 
-  // 🎤 Better voice (less robotic)
+  // 🎤 Speak
   const speak = (text) => {
-  return new Promise((resolve) => {
-    if (!text) return resolve();
+    return new Promise((resolve) => {
+      if (!text) return resolve();
 
-    const utterance = new SpeechSynthesisUtterance(text);
+      const utterance = new SpeechSynthesisUtterance(text);
+      const voices = speechSynthesis.getVoices();
 
-    const voices = speechSynthesis.getVoices();
+      utterance.voice =
+        voices.find(v => v.name === "Google US English") || voices[0];
 
-    const selected =
-      voices.find(v => v.name === "Google US English") ||
-      voices[0]; // fallback
+      utterance.rate = 0.95;
 
-    if (selected) utterance.voice = selected;
+      utterance.onend = resolve;
 
-    utterance.rate = 0.95;
-
-    utterance.onend = () => resolve();
-
-    speechSynthesis.cancel();
-    speechSynthesis.speak(utterance);
-  });
-};
+      speechSynthesis.cancel();
+      speechSynthesis.speak(utterance);
+    });
+  };
 
   // 🎥 Camera
   const startCamera = async () => {
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({
-        video: true,
-        audio: false
-      });
-      if (videoRef.current) {
-        videoRef.current.srcObject = stream;
-      }
-    } catch (err) {
-      console.error(err);
-    }
+    const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+    if (videoRef.current) videoRef.current.srcObject = stream;
   };
 
   // 🚀 Start Interview
   const handleStartInterview = async () => {
     try {
-      await navigator.mediaDevices.getUserMedia({
-        video: true,
-        audio: true
-      });
+      await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
 
       setStarted(true);
       await startCamera();
 
       const data = await startInterview();
       setQuestion(data.question);
-
     } catch {
-      alert("Allow camera & microphone");
+      alert("Allow camera & mic");
     }
   };
 
-  // 🔄 Flow
+  // 🔄 Ask question
   useEffect(() => {
     if (question && started) {
       (async () => {
@@ -100,120 +81,59 @@ export default function Interview() {
         startListening();
       })();
     }
-  // eslint-disable-next-line
   }, [question]);
 
   // 🎤 Listening
   const startListening = () => {
     if (!SpeechRecognition) return;
 
-    if (recognitionRef.current) {
-      recognitionRef.current.stop();
-    }
-
     const recognition = new SpeechRecognition();
     recognition.continuous = true;
-    recognition.lang = "en-US";
 
     recognitionRef.current = recognition;
 
-    let finalTranscript = "";
-    let silenceTimer;
+    let transcript = "";
+    let timer;
 
     recognition.start();
     setListening(true);
 
-    recognition.onresult = (event) => {
-      const transcript =
-        event.results[event.results.length - 1][0].transcript;
+    recognition.onresult = (e) => {
+      const text = e.results[e.results.length - 1][0].transcript;
+      transcript += " " + text;
+      setAnswer(transcript);
 
-      finalTranscript = finalTranscript + " " + transcript;
-      setAnswer(finalTranscript);
+      clearTimeout(timer);
 
-      const SILENCE_LIMIT = 1500; // 1.5 sec (faster)
-
-    clearTimeout(silenceTimer);
-
-    silenceTimer = setTimeout(() => {
-  if (finalTranscript.trim().length > 3) {
-        recognition.stop();
-        setListening(false);
-        handleAutoSubmit(finalTranscript);
-    }
-    }, SILENCE_LIMIT);
+      timer = setTimeout(() => {
+        if (transcript.trim().length > 3) {
+          recognition.stop();
+          setListening(false);
+          handleSubmit(transcript);
+        }
+      }, 1500);
     };
-
-    recognition.onend = () => setListening(false);
   };
 
-  // 🧠 No response
-  const handleNoResponse = async () => {
-    const fallback =
-      "Let's move ahead. Try to give a brief structured answer next time.";
+  // 🚀 Submit
+  const handleSubmit = async (ans) => {
+    const res = await submitInterviewAnswer({
+      question_id: question.id,
+      answer: ans
+    });
 
-    setFeedback(fallback);
-    await speak(fallback);
+    setFeedback(res.feedback);
 
-    setQuestion((prev) => prev); // trigger next via backend flow
-  };
+    await speak(res.feedback);
 
-  // 🚀 Auto submit
-  const handleAutoSubmit = async (autoAnswer) => {
-    if (!autoAnswer.trim()) {
-      await handleNoResponse();
-      return;
+    if (res.interview_complete) {
+      const report = await endInterview();
+      navigate("/interview-feedback", { state: report });
+    } else {
+      setQuestion(res.next_question);
     }
 
-    try {
-      const res = await submitInterviewAnswer({
-        question_id: question.id,
-        answer: autoAnswer
-      });
-
-      // 🔥 varied feedback tone (frontend variation)
-      const variations = [
-        res.feedback,
-        "That was a decent attempt. " + res.feedback,
-        "Good effort. " + res.feedback,
-        "Interesting answer. " + res.feedback
-      ];
-
-      const randomFeedback =
-        variations[Math.floor(Math.random() * variations.length)];
-
-      setFeedback(randomFeedback);
-      setAnswer("");
-
-      await speak(randomFeedback);
-
-      if (res.interview_complete) {
-        handleEndInterview();
-      } else {
-        setQuestion(res.next_question);
-      }
-
-    } catch (err) {
-      console.error(err);
-    }
-  };
-
-  // ⛔ End interview
-  const handleEndInterview = async () => {
-    try {
-      if (recognitionRef.current) {
-        recognitionRef.current.stop();
-      }
-
-      speechSynthesis.cancel();
-
-      const reportData = await endInterview();
-
-      setCompleted(true);
-      setReport(reportData);
-
-    } catch (err) {
-      console.error(err);
-    }
+    setAnswer("");
   };
 
   const handleSkip = async () => {
@@ -223,20 +143,17 @@ export default function Interview() {
 
   const handleSimplify = async () => {
     const res = await simplifyQuestion(question.question);
-    setQuestion({
-      ...question,
-      question: res.simplified_question
-    });
+    setQuestion({ ...question, question: res.simplified_question });
   };
 
-  // 🟢 Start screen
+  // 🟢 START SCREEN
   if (!started) {
     return (
-      <div className="h-screen flex flex-col items-center justify-center gap-6">
-        <h1 className="text-3xl font-semibold">AI Interview Practice</h1>
+      <div className="h-screen flex flex-col items-center justify-center bg-[#050505] text-white">
+        <h1 className="text-4xl mb-6">AI Interview Practice</h1>
         <button
           onClick={handleStartInterview}
-          className="px-6 py-3 bg-black text-white rounded-xl"
+          className="px-6 py-3 bg-indigo-500 rounded-xl"
         >
           Start Interview
         </button>
@@ -244,73 +161,107 @@ export default function Interview() {
     );
   }
 
-  // 📊 Report
-  if (completed) {
-    return (
-      <div className="p-10 max-w-3xl mx-auto">
-        <h1 className="text-3xl font-semibold mb-6">
-          Interview Report
-        </h1>
+  // 🎤 MAIN UI
+  return (
+    <div className="h-screen bg-[#050505] text-white flex flex-col relative overflow-hidden">
 
-        <div className="grid grid-cols-2 gap-4 mb-6">
-          {Object.entries(report.scores || {}).map(([k, v]) => (
-            <div key={k} className="bg-gray-100 p-4 rounded-xl">
-              <p className="text-sm">{k}</p>
-              <p className="text-xl font-semibold">{v}</p>
-            </div>
-          ))}
+      {/* HEADER */}
+      <header className="p-6 flex justify-between items-center">
+        <button
+          onClick={() => navigate("/options")}
+          className="text-sm text-zinc-400 hover:text-white"
+        >
+          ← Exit Session
+        </button>
+
+        <div className="text-xs bg-zinc-900 px-3 py-1 rounded-full border border-white/10">
+          Sensei Live
+        </div>
+      </header>
+
+      {/* MAIN */}
+      <div className="flex-1 flex flex-col items-center justify-center text-center px-6">
+
+        <div className="mb-6 text-indigo-400 text-sm">
+          {listening ? "🎤 Listening..." : "Thinking..."}
         </div>
 
-        <p>{report.overall_feedback}</p>
+        <h1 className="text-4xl md:text-6xl font-bold max-w-4xl leading-tight">
+          "{question?.question}"
+        </h1>
 
-        <ul className="list-disc ml-6">
-          {report.tips?.map((tip, i) => (
-            <li key={i}>{tip}</li>
-          ))}
-        </ul>
-      </div>
-    );
-  }
+        <p className="text-zinc-500 mt-4">
+          Speak naturally. Pause to submit.
+        </p>
 
-  return (
-    <div className="min-h-screen flex flex-col items-center p-6">
-
-      <div className="max-w-2xl bg-gray-50 p-6 rounded-xl mb-6">
-        {question?.question}
       </div>
 
-      <textarea
-        value={answer}
-        readOnly
-        className="w-full max-w-2xl p-4 border rounded-xl mb-4"
-        rows={4}
-      />
+      {/* CONTROLS */}
+      <div className="p-10 grid grid-cols-3 items-center">
 
-      <div className="flex gap-3 mb-6">
-        <button onClick={handleSkip} className="border px-4 py-2 rounded-full">
-          Skip
-        </button>
+        {/* LEFT */}
+        <div className="space-y-3">
+          <button
+            onClick={handleSimplify}
+            className="px-4 py-2 bg-zinc-900 rounded-xl border"
+          >
+            Simplify
+          </button>
 
-        <button onClick={handleSimplify} className="border px-4 py-2 rounded-full">
-          Simplify
-        </button>
+          <button
+            onClick={handleSkip}
+            className="px-4 py-2 bg-zinc-900 rounded-xl border"
+          >
+            Skip
+          </button>
+        </div>
 
-        <button
-          onClick={handleEndInterview}
-          className="bg-red-500 text-white px-4 py-2 rounded-full"
-        >
-          End Interview
-        </button>
+        {/* MIC */}
+        <div className="flex flex-col items-center">
+          <div className="w-20 h-20 bg-indigo-500 rounded-full flex items-center justify-center text-3xl shadow-lg">
+            🎤
+          </div>
+
+          {/* fake visualizer */}
+          <div className="flex gap-1 mt-4">
+            {[...Array(10)].map((_, i) => (
+              <div
+                key={i}
+                className="w-1 bg-white/40 animate-pulse"
+                style={{ height: `${20 + Math.random() * 50}px` }}
+              />
+            ))}
+          </div>
+        </div>
+
+        {/* CAMERA */}
+        <div className="flex flex-col items-end">
+          <video
+            ref={videoRef}
+            autoPlay
+            muted
+            className="w-40 rounded-xl border border-white/10"
+          />
+
+          <button
+            onClick={async () => {
+              const report = await endInterview();
+              navigate("/interview-feedback", { state: report });
+            }}
+            className="mt-4 px-4 py-2 bg-red-500 rounded-xl"
+          >
+            End
+          </button>
+        </div>
+
       </div>
 
-      {feedback && <p className="italic">{feedback}</p>}
-
-      <video
-        ref={videoRef}
-        autoPlay
-        muted
-        className="fixed bottom-6 right-6 w-40 rounded-xl"
-      />
+      {/* FEEDBACK */}
+      {feedback && (
+        <div className="absolute bottom-4 left-1/2 -translate-x-1/2 bg-zinc-900 px-6 py-3 rounded-xl text-sm">
+          {feedback}
+        </div>
+      )}
     </div>
   );
 }

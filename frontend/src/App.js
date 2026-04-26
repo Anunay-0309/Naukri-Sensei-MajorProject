@@ -8,6 +8,7 @@ import Jobs from "./pages/Jobs";
 import Quiz from "./pages/Quiz";
 import Radar from "./pages/Radar";
 import Interview from "./pages/Interview";
+import InterviewFeedback from "./pages/InterviewFeedback";
 
 function App() {
   return (
@@ -21,6 +22,7 @@ function App() {
         <Route path="/quiz" element={<Quiz />} />
         <Route path="/radar" element={<Radar />} />
         <Route path="/interview" element={<Interview />} />
+        <Route path="/interview-feedback" element={<InterviewFeedback />} />
       </Routes>
     </Router>
   );

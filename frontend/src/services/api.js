@@ -1,88 +1,71 @@
-const BASE_URL = "http://127.0.0.1:8000";
+import axios from "axios";
 
+const API = "http://localhost:8000";
+
+// =========================
+// RESUME
+// =========================
 export const uploadResume = async (file) => {
   const formData = new FormData();
   formData.append("file", file);
 
-  const res = await fetch(`${BASE_URL}/upload_resume`, {
-    method: "POST",
-    body: formData
+  const res = await axios.post(`${API}/upload_resume`, formData, {
+    headers: {
+      "Content-Type": "multipart/form-data",
+    },
   });
 
-  return res.json();
+  return res.data;
 };
 
+// =========================
+// JOBS
+// =========================
 export const fetchJobs = async (domain) => {
-  const res = await fetch(`${BASE_URL}/domain_jobs`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json"
-    },
-    body: JSON.stringify({ domain })
+  const res = await axios.post(`${API}/domain_jobs`, {
+    domain,
   });
 
-  return res.json();
+  return res.data;
 };
 
+// =========================
+// QUIZ
+// =========================
 export const generateQuiz = async () => {
-  const res = await fetch(`${BASE_URL}/generate_quiz`, {
-    method: "POST"
-  });
-
-  return res.json();
+  const res = await axios.post(`${API}/generate_quiz`);
+  return res.data;
 };
 
-export const submitQuiz = async (payload) => {
-  const res = await fetch(`${BASE_URL}/submit_quiz`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json"
-    },
-    body: JSON.stringify(payload)
-  });
-
-  return res.json();
+export const submitQuiz = async (answers) => {
+  const res = await axios.post(`${API}/submit_quiz`, answers);
+  return res.data;
 };
 
+// =========================
+// INTERVIEW
+// =========================
 export const startInterview = async () => {
-  const res = await fetch(`${BASE_URL}/start_interview`, {
-    method: "POST"
-  });
-  return res.json();
+  const res = await axios.post(`${API}/start_interview`);
+  return res.data;
 };
 
 export const submitInterviewAnswer = async (payload) => {
-  const res = await fetch(`${BASE_URL}/submit_interview_answer`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json"
-    },
-    body: JSON.stringify(payload)
-  });
-  return res.json();
+  const res = await axios.post(`${API}/submit_interview_answer`, payload);
+  return res.data;
 };
 
 export const skipInterviewQuestion = async () => {
-  const res = await fetch(`${BASE_URL}/skip_interview_question`, {
-    method: "POST"
-  });
-  return res.json();
+  const res = await axios.post(`${API}/skip_interview_question`);
+  return res.data;
 };
 
 export const simplifyQuestion = async (question) => {
-  const res = await fetch(`${BASE_URL}/simplify_question`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json"
-    },
-    body: JSON.stringify({ question })
-  });
-  return res.json();
+  const res = await axios.post(`${API}/simplify_question`, { question });
+  return res.data;
 };
 
 export const endInterview = async () => {
-  const res = await fetch(`${BASE_URL}/end_interview`, {
-    method: "POST"
-  });
-  return res.json();
+  const res = await axios.post(`${API}/end_interview`);
+  return res.data;
 };

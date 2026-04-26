@@ -1,5 +1,4 @@
 import { useEffect, useState } from "react";
-import MainLayout from "../layout/MainLayout";
 import { useNavigate } from "react-router-dom";
 import { generateQuiz, submitQuiz } from "../services/api";
 
@@ -8,21 +7,23 @@ export default function Quiz() {
 
   const [quiz, setQuiz] = useState(null);
   const [answers, setAnswers] = useState([]);
-  const [subjective, setSubjective] = useState(["", ""]);
+  const [subjective, setSubjective] = useState([]);
   const [loading, setLoading] = useState(true);
 
+  // ================= LOAD QUIZ =================
   useEffect(() => {
     const loadQuiz = async () => {
       try {
         const data = await generateQuiz();
 
-        console.log("QUIZ RESPONSE:", data);   // IMPORTANT DEBUG
+        console.log("QUIZ RESPONSE:", data);
 
-        // Safe extraction of MCQs
         const mcqs = data.mcq || data.hard_mcq || [];
+        const subjectiveQs = data.subjective || [];
 
         setQuiz(data);
         setAnswers(new Array(mcqs.length).fill(null));
+        setSubjective(new Array(subjectiveQs.length).fill(""));
         setLoading(false);
 
       } catch (err) {
@@ -33,26 +34,15 @@ export default function Quiz() {
     loadQuiz();
   }, []);
 
-  if (loading || !quiz) {
-    return (
-      <MainLayout>
-        <div className="flex h-[70vh] items-center justify-center text-xl text-gray-400">
-          Preparing your personalized assessment…
-        </div>
-      </MainLayout>
-    );
-  }
-
-  const mcqs = quiz.mcq || quiz.hard_mcq || [];
-  const subjectiveQs = quiz.subjective || [];
-
+  // ================= SELECT MCQ =================
   const selectOption = (qIndex, option) => {
     const copy = [...answers];
     copy[qIndex] = option;
     setAnswers(copy);
   };
 
-  const submit = async () => {
+  // ================= SUBMIT =================
+  const handleSubmit = async () => {
     try {
       const payload = {
         mcq_answers: answers,
@@ -61,6 +51,9 @@ export default function Quiz() {
 
       const res = await submitQuiz(payload);
 
+      console.log("QUIZ RESULT:", res);
+
+      // ✅ FIXED NAVIGATION (NO ALERT)
       navigate("/radar", { state: res });
 
     } catch (err) {
@@ -68,78 +61,112 @@ export default function Quiz() {
     }
   };
 
+  // ================= LOADING =================
+  if (loading || !quiz) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-[#050505] text-white">
+        <p className="text-zinc-400 text-lg">
+          Preparing your personalized assessment…
+        </p>
+      </div>
+    );
+  }
+
+  const mcqs = quiz.mcq || quiz.hard_mcq || [];
+  const subjectiveQs = quiz.subjective || [];
+
+  // ================= UI =================
   return (
-    <MainLayout>
-      <div className="max-w-3xl mx-auto mt-12">
+    <div className="min-h-screen bg-[#050505] text-white font-['Space_Grotesk']">
 
-        <h2 className="text-4xl font-semibold mb-10 text-center">
-          Skill Assessment
-        </h2>
+      {/* HEADER */}
+      <div className="p-8 flex justify-between items-center border-b border-white/5">
+        <div className="text-xl font-bold">Sensei Quiz</div>
+        <button
+          onClick={() => navigate("/options")}
+          className="px-4 py-2 border border-white/10 rounded-full text-xs hover:bg-white/5"
+        >
+          Exit Focus
+        </button>
+      </div>
 
-        {/* MCQs */}
-        <div className="space-y-12">
-          {mcqs.map((q, i) => (
-            <div key={i}>
+      {/* CONTENT */}
+      <div className="max-w-4xl mx-auto px-6 py-12 space-y-12">
 
-              <h3 className="text-xl mb-4 font-medium leading-snug">
-                {i + 1}. {q.question}
-              </h3>
-
-              <div className="flex flex-col gap-3">
-                {q.options.map((opt, j) => (
-                  <button
-                    key={j}
-                    onClick={() => selectOption(i, opt)}
-                    className={`border rounded-xl px-5 py-3 text-left transition
-                      ${answers[i] === opt
-                        ? "bg-black text-white"
-                        : "hover:bg-gray-100"}
-                    `}
-                  >
-                    {opt}
-                  </button>
-                ))}
-              </div>
-
-            </div>
-          ))}
-        </div>
-
-        {/* Subjective */}
-        <div className="mt-16 space-y-10">
-
-          {subjectiveQs.map((q, i) => (
-            <div key={i}>
-              <h3 className="text-xl mb-3 font-medium">
-                {mcqs.length + i + 1}. {q.question}
-              </h3>
-
-              <textarea
-                className="w-full border rounded-xl p-4 h-40 focus:outline-none focus:ring"
-                placeholder="Write your answer..."
-                value={subjective[i]}
-                onChange={(e) => {
-                  const copy = [...subjective];
-                  copy[i] = e.target.value;
-                  setSubjective(copy);
-                }}
-              />
-            </div>
-          ))}
-
-        </div>
-
-        {/* Submit */}
-        <div className="flex justify-center mt-20 mb-20">
-          <button
-            onClick={submit}
-            className="px-12 py-4 bg-black text-white rounded-full hover:opacity-80 transition"
+        {/* ===== MCQs ===== */}
+        {mcqs.map((q, i) => (
+          <div
+            key={i}
+            className="p-8 rounded-3xl bg-zinc-900/40 border border-white/5 backdrop-blur-xl"
           >
-            Submit Assessment
+            <h3 className="text-xl mb-6 font-semibold leading-snug">
+              {i + 1}. {q.question}
+            </h3>
+
+            <div className="space-y-4">
+              {q.options.map((opt, j) => (
+                <div
+                  key={j}
+                  onClick={() => selectOption(i, opt)}
+                  className={`cursor-pointer p-4 rounded-xl border transition-all flex justify-between items-center
+                    ${
+                      answers[i] === opt
+                        ? "border-indigo-500 bg-indigo-500/10"
+                        : "border-white/10 hover:border-white/30"
+                    }
+                  `}
+                >
+                  <span>{opt}</span>
+
+                  <div
+                    className={`w-5 h-5 rounded-full border
+                      ${
+                        answers[i] === opt
+                          ? "bg-indigo-500 border-indigo-500"
+                          : "border-white/30"
+                      }
+                    `}
+                  />
+                </div>
+              ))}
+            </div>
+          </div>
+        ))}
+
+        {/* ===== SUBJECTIVE ===== */}
+        {subjectiveQs.map((q, i) => (
+          <div
+            key={i}
+            className="p-8 rounded-3xl bg-zinc-900/40 border border-white/5 backdrop-blur-xl"
+          >
+            <h3 className="text-xl mb-6 font-semibold leading-snug">
+              {mcqs.length + i + 1}. {q.question}
+            </h3>
+
+            <textarea
+              placeholder="Type your detailed answer here..."
+              className="w-full h-40 bg-transparent border border-white/10 rounded-2xl p-4 focus:outline-none focus:border-indigo-500/50 transition-all"
+              value={subjective[i]}
+              onChange={(e) => {
+                const copy = [...subjective];
+                copy[i] = e.target.value;
+                setSubjective(copy);
+              }}
+            />
+          </div>
+        ))}
+
+        {/* ===== SUBMIT BUTTON ===== */}
+        <div className="flex justify-center pt-10">
+          <button
+            onClick={handleSubmit}
+            className="px-12 py-4 bg-indigo-500 hover:bg-indigo-600 rounded-full font-bold transition-all hover:scale-105 shadow-[0_0_30px_rgba(99,102,241,0.4)]"
+          >
+            Submit Quiz
           </button>
         </div>
 
       </div>
-    </MainLayout>
+    </div>
   );
 }
